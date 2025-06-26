@@ -250,8 +250,15 @@ class WP_Diagnostics_Admin_Interface {
             </div>
             
             <?php
-            $php_info = $php_checker->get_php_info();
-            $this->render_php_results( $php_info );
+            $php_results = array(
+                'info' => $php_checker->get_php_info(),
+                'configuration' => $php_checker->check_php_configuration(),
+                'extensions' => $php_checker->check_php_extensions(),
+                'issues' => $php_checker->check_php_issues(),
+                'performance' => $php_checker->run_performance_test(),
+                'errors' => $php_checker->check_php_errors()
+            );
+            $this->render_php_results( $php_results );
             ?>
             
             <?php $this->render_quick_links(); ?>
@@ -385,13 +392,41 @@ class WP_Diagnostics_Admin_Interface {
     private function render_plugins_results( $results ) {
         ?>
         <div class="wp-diagnostics-plugins-results">
+            
+            <!-- Aktywne wtyczki -->
             <div class="postbox">
-                <h3 class="hndle"><?php _e( 'Analiza Wtyczek i Motywów', 'wp-diagnostics' ); ?></h3>
+                <h3 class="hndle"><?php _e( 'Aktywne Wtyczki', 'wp-diagnostics' ); ?></h3>
                 <div class="inside">
-                    <p><?php _e( 'Funkcja analizy wtyczek i motywów zostanie wkrótce dodana.', 'wp-diagnostics' ); ?></p>
-                    <p><em><?php _e( 'Ta sekcja będzie zawierać sprawdzenie aktywnych wtyczek, ich wersji, kompatybilności i potencjalnych problemów bezpieczeństwa.', 'wp-diagnostics' ); ?></em></p>
+                    <?php $this->render_active_plugins_section( $results['active_plugins'] ); ?>
                 </div>
             </div>
+            
+            <!-- Aktywny motyw -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Aktywny Motyw', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_active_theme_section( $results['active_theme'] ); ?>
+                </div>
+            </div>
+            
+            <!-- Problemy z wtyczkami -->
+            <?php if ( !empty( $results['plugin_issues'] ) ): ?>
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Zidentyfikowane Problemy', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_plugin_issues_section( $results['plugin_issues'] ); ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Statystyki -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Statystyki', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_plugin_statistics_section( $results['statistics'] ); ?>
+                </div>
+            </div>
+            
         </div>
         <?php
     }
@@ -400,10 +435,63 @@ class WP_Diagnostics_Admin_Interface {
      * Renderuj wyniki PHP
      */
     private function render_php_results( $results ) {
-        // Implementacja będzie dodana w kolejnych plikach
-        echo '<div class="wp-diagnostics-php-results">';
-        echo '<p>' . __( 'Analiza PHP zostanie zaimplementowana w osobnej klasie.', 'wp-diagnostics' ) . '</p>';
-        echo '</div>';
+        ?>
+        <div class="wp-diagnostics-php-results">
+            
+            <!-- Informacje o PHP -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Informacje o PHP', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_info_section( $results['info'] ); ?>
+                </div>
+            </div>
+            
+            <!-- Konfiguracja PHP -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Konfiguracja PHP', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_config_section( $results['configuration'] ); ?>
+                </div>
+            </div>
+            
+            <!-- Rozszerzenia PHP -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Rozszerzenia PHP', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_extensions_section( $results['extensions'] ); ?>
+                </div>
+            </div>
+            
+            <!-- Problemy z konfiguracją -->
+            <?php if ( !empty( $results['issues']['issues'] ) || !empty( $results['issues']['warnings'] ) ): ?>
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Problemy i Ostrzeżenia', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_issues_section( $results['issues'] ); ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Test wydajności -->
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Test Wydajności PHP', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_performance_section( $results['performance'] ); ?>
+                </div>
+            </div>
+            
+            <!-- Błędy PHP -->
+            <?php if ( $results['errors']['accessible'] && !empty( $results['errors']['errors'] ) ): ?>
+            <div class="postbox">
+                <h3 class="hndle"><?php _e( 'Ostatnie Błędy PHP', 'wp-diagnostics' ); ?></h3>
+                <div class="inside">
+                    <?php $this->render_php_errors_section( $results['errors'] ); ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            
+        </div>
+        <?php
     }
     
     /**
@@ -722,6 +810,411 @@ class WP_Diagnostics_Admin_Interface {
         <p class="description">
             <?php _e( 'Sprawdź czy uprawnienia plików są odpowiednio skonfigurowane dla bezpieczeństwa.', 'wp-diagnostics' ); ?>
         </p>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję aktywnych wtyczek
+     */
+    private function render_active_plugins_section( $plugins ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <th><?php _e( 'Wtyczka', 'wp-diagnostics' ); ?></th>
+                <th><?php _e( 'Wersja', 'wp-diagnostics' ); ?></th>
+                <th><?php _e( 'Autor', 'wp-diagnostics' ); ?></th>
+                <th><?php _e( 'Status', 'wp-diagnostics' ); ?></th>
+            </tr>
+            <?php foreach ( $plugins as $plugin ): ?>
+            <tr>
+                <td><strong><?php echo esc_html( $plugin['name'] ); ?></strong></td>
+                <td><?php echo esc_html( $plugin['version'] ); ?></td>
+                <td><?php echo esc_html( $plugin['author'] ); ?></td>
+                <td>
+                    <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Aktywna', 'wp-diagnostics' ); ?>
+                    <?php if ( $plugin['network'] ): ?>
+                        <br><small><?php _e( 'Aktywna w sieci', 'wp-diagnostics' ); ?></small>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję aktywnego motywu
+     */
+    private function render_active_theme_section( $theme ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <td><strong><?php _e( 'Nazwa:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $theme['name'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Wersja:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $theme['version'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Autor:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $theme['author'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Ścieżka:', 'wp-diagnostics' ); ?></strong></td>
+                <td><code><?php echo esc_html( $theme['template'] ); ?></code></td>
+            </tr>
+            <?php if ( $theme['child_theme'] ): ?>
+            <tr>
+                <td><strong><?php _e( 'Motyw dziecko:', 'wp-diagnostics' ); ?></strong></td>
+                <td>
+                    <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Tak', 'wp-diagnostics' ); ?>
+                    <br><small><?php _e( 'Motyw nadrzędny:', 'wp-diagnostics' ); ?> <?php echo esc_html( $theme['parent'] ); ?></small>
+                </td>
+            </tr>
+            <?php endif; ?>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję problemów z wtyczkami
+     */
+    private function render_plugin_issues_section( $issues ) {
+        ?>
+        <?php if ( !empty( $issues['outdated'] ) ): ?>
+            <h4><?php _e( 'Przestarzałe wtyczki', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['outdated'] as $plugin ): ?>
+                <li>
+                    <span class="dashicons dashicons-warning"></span>
+                    <strong><?php echo esc_html( $plugin['name'] ); ?></strong> - 
+                    <?php printf( __( 'nie aktualizowana od %d dni', 'wp-diagnostics' ), $plugin['days'] ); ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        
+        <?php if ( !empty( $issues['mu_plugins'] ) ): ?>
+            <h4><?php _e( 'Must-Use wtyczki', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['mu_plugins'] as $plugin ): ?>
+                <li>
+                    <span class="dashicons dashicons-info"></span>
+                    <strong><?php echo esc_html( $plugin ); ?></strong>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        
+        <?php if ( !empty( $issues['dropins'] ) ): ?>
+            <h4><?php _e( 'Drop-in wtyczki', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['dropins'] as $plugin ): ?>
+                <li>
+                    <span class="dashicons dashicons-info"></span>
+                    <strong><?php echo esc_html( $plugin ); ?></strong>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję statystyk wtyczek
+     */
+    private function render_plugin_statistics_section( $stats ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <td><strong><?php _e( 'Wszystkie wtyczki:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['total_plugins'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Aktywne wtyczki:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['active_plugins'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Nieaktywne wtyczki:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['inactive_plugins'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Must-Use wtyczki:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['mu_plugins'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Drop-in wtyczki:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['dropins'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Dostępne motywy:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo intval( $stats['total_themes'] ); ?></td>
+            </tr>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję informacji o PHP
+     */
+    private function render_php_info_section( $info ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <td><strong><?php _e( 'Wersja PHP:', 'wp-diagnostics' ); ?></strong></td>
+                <td>
+                    <?php echo esc_html( $info['version'] ); ?>
+                    <?php if ( version_compare( $info['version'], '8.0', '<' ) ): ?>
+                        <span class="dashicons dashicons-warning"></span> <?php _e( 'Zalecana aktualizacja', 'wp-diagnostics' ); ?>
+                    <?php else: ?>
+                        <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Aktualna', 'wp-diagnostics' ); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'SAPI:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['sapi'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'System operacyjny:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['os'] ); ?> (<?php echo esc_html( $info['architecture'] ); ?>)</td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Wersja Zend:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['zend_version'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Limit pamięci:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['memory_limit'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Użycie pamięci:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['memory_usage'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Szczyt pamięci:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $info['memory_peak'] ); ?></td>
+            </tr>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję konfiguracji PHP
+     */
+    private function render_php_config_section( $config ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <td><strong>memory_limit:</strong></td>
+                <td><?php echo esc_html( $config['memory_limit'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>max_execution_time:</strong></td>
+                <td><?php echo esc_html( $config['max_execution_time'] ); ?> <?php _e( 'sekund', 'wp-diagnostics' ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>max_input_vars:</strong></td>
+                <td><?php echo esc_html( $config['max_input_vars'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>post_max_size:</strong></td>
+                <td><?php echo esc_html( $config['post_max_size'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>upload_max_filesize:</strong></td>
+                <td><?php echo esc_html( $config['upload_max_filesize'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>max_file_uploads:</strong></td>
+                <td><?php echo esc_html( $config['max_file_uploads'] ); ?></td>
+            </tr>
+            <tr>
+                <td><strong>display_errors:</strong></td>
+                <td>
+                    <?php echo $config['display_errors'] ? 'On' : 'Off'; ?>
+                    <?php if ( $config['display_errors'] ): ?>
+                        <span class="dashicons dashicons-warning"></span> <?php _e( 'Powinno być wyłączone w produkcji', 'wp-diagnostics' ); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>log_errors:</strong></td>
+                <td><?php echo $config['log_errors'] ? 'On' : 'Off'; ?></td>
+            </tr>
+            <tr>
+                <td><strong>OPcache:</strong></td>
+                <td>
+                    <?php if ( $config['opcache_enabled'] ): ?>
+                        <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Włączony', 'wp-diagnostics' ); ?>
+                    <?php else: ?>
+                        <span class="dashicons dashicons-warning"></span> <?php _e( 'Wyłączony', 'wp-diagnostics' ); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję rozszerzeń PHP
+     */
+    private function render_php_extensions_section( $extensions ) {
+        ?>
+        <h4><?php _e( 'Wymagane rozszerzenia', 'wp-diagnostics' ); ?></h4>
+        <table class="wp-diagnostics-table">
+            <?php foreach ( $extensions['required'] as $ext => $info ): ?>
+            <tr>
+                <td><strong><?php echo esc_html( $info['name'] ); ?>:</strong></td>
+                <td>
+                    <?php if ( $info['loaded'] ): ?>
+                        <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Załadowane', 'wp-diagnostics' ); ?>
+                        <?php if ( $info['version'] ): ?>
+                            <small>(v<?php echo esc_html( $info['version'] ); ?>)</small>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="dashicons dashicons-dismiss"></span> <?php _e( 'Brak', 'wp-diagnostics' ); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        
+        <h4><?php _e( 'Zalecane rozszerzenia', 'wp-diagnostics' ); ?></h4>
+        <table class="wp-diagnostics-table">
+            <?php foreach ( $extensions['recommended'] as $ext => $info ): ?>
+            <tr>
+                <td><strong><?php echo esc_html( $info['name'] ); ?>:</strong></td>
+                <td>
+                    <?php if ( $info['loaded'] ): ?>
+                        <span class="dashicons dashicons-yes-alt"></span> <?php _e( 'Załadowane', 'wp-diagnostics' ); ?>
+                        <?php if ( $info['version'] ): ?>
+                            <small>(v<?php echo esc_html( $info['version'] ); ?>)</small>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="dashicons dashicons-warning"></span> <?php _e( 'Brak', 'wp-diagnostics' ); ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php endforeach; ?>
+        </table>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję problemów PHP
+     */
+    private function render_php_issues_section( $issues ) {
+        ?>
+        <?php if ( !empty( $issues['issues'] ) ): ?>
+            <h4><?php _e( 'Problemy krytyczne', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['issues'] as $issue ): ?>
+                <li>
+                    <span class="dashicons dashicons-dismiss"></span>
+                    <?php echo esc_html( $issue ); ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        
+        <?php if ( !empty( $issues['warnings'] ) ): ?>
+            <h4><?php _e( 'Ostrzeżenia', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['warnings'] as $warning ): ?>
+                <li>
+                    <span class="dashicons dashicons-warning"></span>
+                    <?php echo esc_html( $warning ); ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        
+        <?php if ( !empty( $issues['recommendations'] ) ): ?>
+            <h4><?php _e( 'Rekomendacje', 'wp-diagnostics' ); ?></h4>
+            <ul>
+                <?php foreach ( $issues['recommendations'] as $recommendation ): ?>
+                <li>
+                    <span class="dashicons dashicons-info"></span>
+                    <?php echo esc_html( $recommendation ); ?>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję testu wydajności PHP
+     */
+    private function render_php_performance_section( $performance ) {
+        ?>
+        <table class="wp-diagnostics-table">
+            <tr>
+                <td><strong><?php _e( 'Test arytmetyczny:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $performance['arithmetic'] ); ?> ms</td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Operacje na łańcuchach:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $performance['string_operations'] ); ?> ms</td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Operacje na tablicach:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $performance['array_operations'] ); ?> ms</td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Operacje I/O:', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( $performance['io_operations'] ); ?> ms</td>
+            </tr>
+            <tr>
+                <td><strong><?php _e( 'Użycie pamięci (test):', 'wp-diagnostics' ); ?></strong></td>
+                <td><?php echo esc_html( number_format( $performance['memory_usage'] / 1024 / 1024, 2 ) ); ?> MB</td>
+            </tr>
+        </table>
+        <p class="description">
+            <?php _e( 'Niższe wartości oznaczają lepszą wydajność. Wyniki mogą się różnić w zależności od obciążenia serwera.', 'wp-diagnostics' ); ?>
+        </p>
+        <?php
+    }
+    
+    /**
+     * Renderuj sekcję błędów PHP
+     */
+    private function render_php_errors_section( $errors ) {
+        ?>
+        <p><strong><?php _e( 'Plik logów:', 'wp-diagnostics' ); ?></strong> <code><?php echo esc_html( $errors['log_file'] ); ?></code></p>
+        
+        <?php if ( !empty( $errors['errors'] ) ): ?>
+            <table class="wp-diagnostics-table">
+                <tr>
+                    <th><?php _e( 'Czas', 'wp-diagnostics' ); ?></th>
+                    <th><?php _e( 'Typ', 'wp-diagnostics' ); ?></th>
+                    <th><?php _e( 'Wiadomość', 'wp-diagnostics' ); ?></th>
+                </tr>
+                <?php foreach ( array_slice( $errors['errors'], 0, 10 ) as $error ): ?>
+                <tr>
+                    <td><small><?php echo esc_html( $error['timestamp'] ); ?></small></td>
+                    <td>
+                        <?php if ( strpos( $error['type'], 'Fatal' ) !== false ): ?>
+                            <span class="dashicons dashicons-dismiss"></span>
+                        <?php elseif ( strpos( $error['type'], 'Warning' ) !== false ): ?>
+                            <span class="dashicons dashicons-warning"></span>
+                        <?php else: ?>
+                            <span class="dashicons dashicons-info"></span>
+                        <?php endif; ?>
+                        <?php echo esc_html( $error['type'] ); ?>
+                    </td>
+                    <td><small><?php echo esc_html( $error['message'] ); ?></small></td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <p class="description">
+                <?php printf( __( 'Pokazano ostatnie 10 błędów z %d dostępnych.', 'wp-diagnostics' ), $errors['total_lines'] ); ?>
+            </p>
+        <?php else: ?>
+            <p><?php _e( 'Brak błędów w logach lub logi są puste.', 'wp-diagnostics' ); ?></p>
+        <?php endif; ?>
         <?php
     }
 }
