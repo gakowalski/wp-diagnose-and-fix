@@ -1,8 +1,44 @@
-# Network Diagnostics Tool
+# Network Diagnostics Tool - WordPress Plugin
 
-Zaawansowany plugin WordPress do kompleksowej diagnostyki problemów sieciowych.
+Zaawansowane narzędzie do diagnostyki sieci i konfiguracji dla WordPress. Wykonuje kompleksowe testy sieciowe oraz sprawdza konfigurację WordPress, wtyczki, motywy i wydajność PHP.
 
-## Główne funkcje
+## Funkcjonalności
+
+### 🌐 Diagnostyka Sieci
+- **Ping** - Test połączenia z możliwością wyboru liczby prób
+- **Traceroute** - Śledzenie trasy do hosta
+- **Test SMTP** - Sprawdzanie połączenia z serwerem SMTP
+- **Skanowanie portów** - Sprawdzanie popularnych portów
+- **Test MTU** - Sprawdzanie maksymalnej jednostki transmisji
+- **Test SSL/TLS** - Analiza certyfikatów SSL
+- **Test DNS** - Sprawdzanie rozwiązywania nazw
+- **Skanowanie zabezpieczeń** - Wykrywanie WAF i innych zabezpieczeń
+
+### 🔒 Sprawdzanie Konfiguracji WordPress
+- **Analiza wp-config.php** - Sprawdzanie kluczy bezpieczeństwa, soli i ustawień
+- **Wykrywanie domyślnych placeholderów** - Identyfikacja niezmienionych kluczy
+- **Ustawienia debug** - Analiza konfiguracji debugowania
+- **Ustawienia bazy danych** - Weryfikacja połączenia z bazą
+- **Kontrola bezpieczeństwa** - Sprawdzanie prefiksów tabel, SSL, edycji plików
+
+### 🔌 Analiza Wtyczek i Motywów
+- **Aktywne wtyczki** - Lista z informacjami o aktualizacjach
+- **Nieaktywne wtyczki** - Wykrywanie przestarzałych wtyczek
+- **Analiza motywów** - Sprawdzanie aktywnego motywu i dostępnych aktualizacji
+- **Motyw potomny** - Weryfikacja czy używany jest child theme
+- **Statystyki** - Podsumowanie wymagających uwagi elementów
+
+### ⚡ Wydajność i Limity PHP
+- **Informacje o PHP** - Wersja, SAPI, system operacyjny
+- **Limity konfiguracji** - memory_limit, max_execution_time, upload_max_filesize
+- **Rozszerzenia PHP** - Status ważnych rozszerzeń (curl, gd, mbstring, itp.)
+- **Test wydajności** - Benchmarki matematyczne, I/O i pamięci
+
+### 📊 Dodatkowe Funkcje
+- **Porównanie wyników serwer/klient** - Zestawienie testów wykonanych po obu stronach
+- **Eksport raportów** - Możliwość eksportu do PDF i CSV
+- **Historia testów** - Przechowywanie wyników w bazie danych
+- **Podgląd logów WordPress** - Ostatnie błędy z plików logów
 
 ### Testy sieciowe
 - Ping z wieloma próbami i szczegółowymi statystykami

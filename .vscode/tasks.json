@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install WordPress Plugin",
+			"type": "shell",
+			"command": "echo Plugin structure created. To test: 1) Copy to wp-content/plugins/ 2) Activate in WordPress admin 3) Check 'Diagnostyka WP' menu",
+			"group": "build",
+			"isBackground": false
+		}
+	]
+}
